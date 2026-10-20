@@ -67,7 +67,6 @@ class MyHandler(BaseHTTPRequestHandler):
 
         self.wfile.write(response)
 
-
     def do_GET(self):
 
         parsed = urlparse(self.path)
@@ -91,9 +90,75 @@ class MyHandler(BaseHTTPRequestHandler):
 
             self.wfile.write(body)
 
+        elif parsed.path.startswith("/notes/"):
+
+            id_string = parsed.path[len("/notes/"):]
+
+            if not id_string.isdigit():
+                self.send_response(404)
+                self.end_headers()
+                return
+
+            note_id = int(id_string)
+
+            if note_id not in notes:
+                self.send_response(404)
+                self.end_headers()
+                return
+
+            body = json.dumps({
+                "id": note_id,
+                "text": notes[note_id]
+            }).encode("utf-8")
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+
+            self.wfile.write(body)
+
         else:
             self.send_response(404)
             self.end_headers()
+
+    def do_DELETE(self):
+
+        parsed = urlparse(self.path)
+
+        if not parsed.path.startswith("/notes/"):
+            self.send_response(404)
+            self.end_headers()
+            return
+
+        id_string = parsed.path[len("/notes/"):]
+
+        if not id_string.isdigit():
+            self.send_response(404)
+            self.end_headers()
+            return
+
+        note_id = int(id_string)
+
+        if note_id not in notes:
+            self.send_response(404)
+            self.end_headers()
+            return
+
+        del notes[note_id]
+
+        self.send_response(204)
+        self.end_headers()
+
+    def do_PUT(self):
+        parsed = urlparse(self.path)
+
+        if parsed.path == "/notes":
+            self.send_response(405)
+            self.end_headers()
+            return
+
+        self.send_response(404)
+        self.end_headers()
 
 server = HTTPServer((HOST, PORT), MyHandler)
 
